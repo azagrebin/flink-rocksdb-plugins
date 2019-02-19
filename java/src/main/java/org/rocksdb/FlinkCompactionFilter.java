@@ -18,6 +18,15 @@ import java.nio.file.StandardCopyOption;
  */
 public class FlinkCompactionFilter
     extends AbstractCompactionFilter<Slice> {
+  static {
+    try {
+      FlinkNativeLibraryLoader.getInstance().loadLibraryFromJar(null);
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to load the Flink shared library"
+              + e);
+    }
+  }
+
   public enum StateType {
     // WARNING!!! Do not change the order of enum entries as it is important for jni translation
     Disabled,
@@ -169,36 +178,5 @@ public class FlinkCompactionFilter
         throw new IllegalStateException("Compaction filter is already configured");
       }
     }
-  }
-
-  private static File loadLibraryFromJarToTemp(final String tmpDir, String jniLibraryFileName) throws IOException {
-    final File temp;
-    temp = new File(tmpDir, jniLibraryFileName);
-    if (temp.exists() && !temp.delete()) {
-      throw new RuntimeException("File: " + temp.getAbsolutePath()
-              + " already exists and cannot be removed.");
-    }
-    if (!temp.createNewFile()) {
-      throw new RuntimeException("File: " + temp.getAbsolutePath()
-              + " could not be created.");
-    }
-
-    if (!temp.exists()) {
-      throw new RuntimeException("File " + temp.getAbsolutePath() + " does not exist.");
-    } else {
-      temp.deleteOnExit();
-    }
-
-    // attempt to copy the library from the Jar file to the temp destination
-    try (final InputStream is = FlinkCompactionFilter.class.getClassLoader().
-            getResourceAsStream(jniLibraryFileName)) {
-      if (is == null) {
-        throw new RuntimeException(jniLibraryFileName + " was not found inside JAR.");
-      } else {
-        Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
-      }
-    }
-
-    return temp;
   }
 }

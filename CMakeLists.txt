@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 2.8)
 
 project(rocksdb_plugins)
 enable_language(CXX)
@@ -9,13 +9,34 @@ if(POLICY CMP0042)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(ROCKSDB_PATH ../rocksdb2)
+if(NOT ROCKSDBLIBJNI_PATH)
+    set(ROCKSDB_PATH ${CMAKE_SOURCE_DIR}/../rocksdb2)
+endif()
 get_filename_component(ROCKSDB_ABS_PATH ${ROCKSDB_PATH} ABSOLUTE)
 
-set(ROCKSDBLIBJNI_PATH ~/.m2/repository/org/rocksdb/rocksdbjni/5.17.2/tmp)
-get_filename_component(ROCKSDBLIBJNI_ABS_PATH ${ROCKSDBLIBJNI_PATH}/librocksdbjni-osx.jnilib ABSOLUTE)
-file(COPY ${ROCKSDBLIBJNI_ABS_PATH} DESTINATION ./java/target)
+if(NOT ROCKSDBLIBJNI_PATH)
+    set(ROCKSDBLIBJNI_PATH ${CMAKE_SOURCE_DIR}/rocksdbjni-bin)
+endif()
+
+if (APPLE)
+    find_library(rocksdbjni NAMES rocksdbjni-osx PATHS "${ROCKSDBLIBJNI_PATH}")
+    get_filename_component(ROCKSDBLIBJNI_ABS_PATH ${ROCKSDBLIBJNI_PATH}/librocksdbjni-osx.jnilib ABSOLUTE)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+    find_library(rocksdbjni NAMES rocksdbjni-linux-ppc64le PATHS "${ROCKSDBLIBJNI_PATH}")
+    get_filename_component(ROCKSDBLIBJNI_ABS_PATH ${ROCKSDBLIBJNI_PATH}/librocksdbjni-linux-ppc64le.so ABSOLUTE)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    find_library(rocksdbjni NAMES rocksdbjni-linux64 PATHS "${ROCKSDBLIBJNI_PATH}")
+    get_filename_component(ROCKSDBLIBJNI_ABS_PATH ${ROCKSDBLIBJNI_PATH}/librocksdbjni-linux64.so ABSOLUTE)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86")
+    find_library(rocksdbjni NAMES rocksdbjni-linux32PATHS "${ROCKSDBLIBJNI_PATH}")
+    get_filename_component(ROCKSDBLIBJNI_ABS_PATH ${ROCKSDBLIBJNI_PATH}/librocksdbjni-linux32.so ABSOLUTE)
+else()
+    message(FATAL_ERROR "Unsupported CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+file(COPY ${ROCKSDBLIBJNI_ABS_PATH} DESTINATION .)
 
 if(NOT WIN32)
     add_definitions(-DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX)
@@ -43,9 +64,12 @@ if(WITH_TESTS)
     add_subdirectory(${ROCKSDB_ABS_PATH}/third-party/gtest-1.7.0/fused-src/gtest ${CMAKE_CURRENT_BINARY_DIR}/gtest)
 
     add_executable(flink_compaction_filter_test src/flink_compaction_filter.cc src/flink_compaction_filter_test.cc)
-    target_link_libraries(flink_compaction_filter_test gtest "${ROCKSDBLIBJNI_ABS_PATH}")
-    set_target_properties(flink_compaction_filter_test PROPERTIES INSTALL_RPATH
-            "/Users/azagrebin/projects/rocksdb_plugins")
+    target_link_libraries(flink_compaction_filter_test gtest ${rocksdbjni})
+    if (APPLE)
+        add_custom_command(TARGET flink_compaction_filter_test
+                POST_BUILD COMMAND
+                ${CMAKE_INSTALL_NAME_TOOL} -change "./java/target/librocksdbjni-osx.jnilib" "@loader_path/librocksdbjni-osx.jnilib" $<TARGET_FILE:flink_compaction_filter_test>)
+    endif()
 endif()
 
 include(FindJava)
@@ -60,4 +84,9 @@ add_library(rocksdb_plugins SHARED src/flink_compaction_filter.cc src/flink_comp
 if(NOT MSVC)
     set_property(TARGET rocksdb_plugins PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
-target_link_libraries(rocksdb_plugins "${ROCKSDBLIBJNI_ABS_PATH}")
+target_link_libraries(rocksdb_plugins ${rocksdbjni})
+if (APPLE)
+    add_custom_command(TARGET rocksdb_plugins
+            POST_BUILD COMMAND
+            ${CMAKE_INSTALL_NAME_TOOL} -change "./java/target/librocksdbjni-osx.jnilib" "@loader_path/librocksdbjni-osx.jnilib" $<TARGET_FILE:rocksdb_plugins>)
+endif()
