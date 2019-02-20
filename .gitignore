@@ -1,6 +1,6 @@
 .idea
-cmake-build*
-build*
+cmake-build*/
+build*/
 rocksdbjni-bin
 target
 java/src/main/resources/lib*
