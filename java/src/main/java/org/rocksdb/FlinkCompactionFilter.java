@@ -5,11 +5,7 @@
 
 package org.rocksdb;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 
 /**
  * Just a Java wrapper around FlinkCompactionFilter implemented in C++.
@@ -19,11 +15,7 @@ import java.nio.file.StandardCopyOption;
 public class FlinkCompactionFilter
     extends AbstractCompactionFilter<Slice> {
   static {
-    try {
-      FlinkNativeLibraryLoader.getInstance().loadLibraryFromJar(null);
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to load the Flink shared library", e);
-    }
+    FlinkNativeLibraryLoader.load();
   }
 
   public enum StateType {

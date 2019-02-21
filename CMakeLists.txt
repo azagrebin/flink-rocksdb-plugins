@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(rocksdb_plugins)
+if(NOT LIBNAME)
+    set(LIBNAME frocksdbplugins)
+endif()
+
+if(NOT ROCKSDB_SOURCE_PATH)
+    set(ROCKSDB_SOURCE_PATH ${CMAKE_SOURCE_DIR}/rocksdb)
+endif()
+
+if (NOT TESTS)
+    set(TESTS flink_compaction_filter_test)
+endif()
+
+project(${LIBNAME})
 enable_language(CXX)
 enable_language(C)
 
@@ -11,10 +23,7 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-if(NOT ROCKSDBLIBJNI_PATH)
-    set(ROCKSDB_PATH ${CMAKE_SOURCE_DIR}/../rocksdb)
-endif()
-get_filename_component(ROCKSDB_ABS_PATH ${ROCKSDB_PATH} ABSOLUTE)
+get_filename_component(ROCKSDB_ABS_PATH ${ROCKSDB_SOURCE_PATH} ABSOLUTE)
 
 if(NOT WIN32)
     add_definitions(-DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX)
@@ -35,36 +44,44 @@ include_directories("${ROCKSDB_ABS_PATH}/include")
 include_directories("${ROCKSDB_ABS_PATH}/util")
 include_directories("${ROCKSDB_ABS_PATH}/include/rocksdb")
 include_directories("${ROCKSDB_ABS_PATH}/include/rocksdb/utilities")
+include_directories("${ROCKSDB_ABS_PATH}/java")
+include_directories("${ROCKSDB_ABS_PATH}/java/rocksjni")
 
 set(SOURCES
         src/flink_compaction_filter.cc
+        src/stringappend_delim.cc
+        src/log.cc
         src/slice.cc
-        src/log.cc)
+        src/merge_operator.cc)
 
 set(JNI_SOURCES
-        src/flink_compactionfilterjni.cc)
-
-set(TEST_SOURCES
-        src/flink_compaction_filter_test.cc)
-
-option(WITH_TESTS "build with tests" ON)
-if(WITH_TESTS)
-    include_directories(SYSTEM ${ROCKSDB_ABS_PATH}/third-party/gtest-1.7.0/fused-src)
-    add_subdirectory(${ROCKSDB_ABS_PATH}/third-party/gtest-1.7.0/fused-src/gtest ${CMAKE_CURRENT_BINARY_DIR}/gtest)
-
-    add_executable(flink_compaction_filter_test ${SOURCES} ${TEST_SOURCES})
-    target_link_libraries(flink_compaction_filter_test gtest)
-endif()
+        src/flink_compactionfilterjni.cc
+        src/stringappend_delim_jni.cc)
 
 include(FindJava)
 include(UseJava)
 include(FindJNI)
+include_directories("${JNI_INCLUDE_DIRS}")
 
-include_directories(${JNI_INCLUDE_DIRS})
-include_directories(${ROCKSDB_ABS_PATH}/java)
-include_directories(${ROCKSDB_ABS_PATH}/java/rocksjni)
+add_library(${LIBNAME} SHARED ${SOURCES} ${JNI_SOURCES})
 
-add_library(rocksdb_plugins SHARED ${SOURCES} ${JNI_SOURCES})
-if(NOT MSVC)
-    set_property(TARGET rocksdb_plugins PROPERTY POSITION_INDEPENDENT_CODE ON)
+# tests
+
+option(WITH_TESTS "build with tests" ON)
+if(WITH_TESTS)
+    enable_testing()
+
+    foreach(TEST ${TESTS})
+        list(APPEND TEST_SOURCES "src/${TEST}.cc")
+    endforeach()
+
+    include_directories(SYSTEM ${ROCKSDB_ABS_PATH}/third-party/gtest-1.7.0/fused-src)
+    add_subdirectory(${ROCKSDB_ABS_PATH}/third-party/gtest-1.7.0/fused-src/gtest ${CMAKE_CURRENT_BINARY_DIR}/gtest)
+
+    foreach(TEST ${TESTS})
+        add_executable(${TEST} ${SOURCES} ${TEST_SOURCES})
+        target_link_libraries(${TEST} gtest pthread)
+        add_test(${TEST} ${TEST})
+        add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS ${TEST})
+    endforeach()
 endif()

@@ -317,22 +317,19 @@ public class FlinkCompactionFilterTest {
         private static class ListElementFilterFactory implements FlinkCompactionFilter.ListElementFilterFactory {
             @Override
             public FlinkCompactionFilter.ListElementFilter createListElementFilter() {
-                return new FlinkCompactionFilter.ListElementFilter() {
-                    @Override
-                    public int nextUnexpiredOffset(byte[] list, long ttl, long currentTimestamp) {
-                        int currentOffset = 0;
-                        while (currentOffset < list.length) {
-                            ByteBuffer bf = ByteBuffer
-                                    .wrap(list, currentOffset, list.length - currentOffset);
-                            long timestamp = bf.getLong();
-                            if (timestamp + ttl > currentTimestamp) {
-                                break;
-                            }
-                            int elemLen = bf.getInt(8);
-                            currentOffset += 13 + elemLen;
+                return (list, ttl, currentTimestamp) -> {
+                    int currentOffset = 0;
+                    while (currentOffset < list.length) {
+                        ByteBuffer bf = ByteBuffer
+                                .wrap(list, currentOffset, list.length - currentOffset);
+                        long timestamp = bf.getLong();
+                        if (timestamp + ttl > currentTimestamp) {
+                            break;
                         }
-                        return currentOffset;
+                        int elemLen = bf.getInt(8);
+                        currentOffset += 13 + elemLen;
                     }
+                    return currentOffset;
                 };
             }
         }

@@ -4,9 +4,10 @@ set -e
 
 CWD=`pwd`
 
-BUILD_DIR=${1:-build}
-VERSION=${2:-5.17.2}
-ROCKSDB_SOURCE_PATH=${3:-../rocksdb2}
+LIBSUFFIX=${1:-osx}
+BUILD_DIR=${2:-build-${LIBSUFFIX}}
+ROCKSDB_SOURCE_PATH=${3:-rocksdb}
+LIBNAME=${4:-frocksdbplugins}
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
@@ -15,25 +16,26 @@ case "${unameOut}" in
     *)           echo "UNKNOWN OS : ${unameOut}"; exit 1
 esac
 
-LIB=librocksdb_plugins
+LIBFULLNAME=${LIBNAME}jni-${LIBSUFFIX}
+LIB=lib${LIBFULLNAME}
 OUT=${BUILD_DIR}/${LIB}.${ext}
 JAVA_OUT=java/src/main/resources/${LIB}.${ext}
 
 rm -f ${JAVA_OUT}
+cd java
+mvn clean compile # generate jni headers
+cd ${CWD}
 
 # copy some rocksdb sources to not depend on rocksdb binaries
 cp ${ROCKSDB_SOURCE_PATH}/util/slice.cc src/.
+cp ${ROCKSDB_SOURCE_PATH}/db/merge_operator.cc src/.
 
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
-if hash scl 2>/dev/null; then
-    scl enable devtoolset-7 'cmake .. -DROCKSDB_PATH=${ROCKSDB_PATH}'
-    scl enable devtoolset-7 'make rocksdb_plugins'
-else
-    cmake .. -DROCKSDB_PATH=${ROCKSDB_SOURCE_PATH}
-	make rocksdb_plugins
-fi
+cmake .. -DROCKSDB_SOURCE_PATH=${ROCKSDB_SOURCE_PATH} -DLIBNAME=${LIBFULLNAME}
+make check
+make ${LIBFULLNAME}
 cd ${CWD}
 
 cp ${OUT} ${JAVA_OUT}
@@ -41,3 +43,6 @@ cp ${OUT} ${JAVA_OUT}
 cd java
 mvn clean install
 cd ${CWD}
+
+echo "Result is in:"
+echo "${JAVA_OUT}"

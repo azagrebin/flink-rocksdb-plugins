@@ -1,8 +1,12 @@
 .idea
 *.iml
+
 cmake-build*/
 build*/
-rocksdbjni-bin
+
 target
 java/src/main/resources/lib*
+
+/rocksdb/
 slice.cc
+merge_operator.cc

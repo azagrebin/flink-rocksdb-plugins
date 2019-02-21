@@ -30,9 +30,17 @@ class FlinkNativeLibraryLoader {
     private static final FlinkNativeLibraryLoader instance = new FlinkNativeLibraryLoader();
     private static boolean initialized = false;
 
-    private static final String tempFilePrefix = "librocksdb_plugins";
+    private static final String tempFilePrefix = "lib" + Environment.getJniLibraryName("frocksdbplugins");
     private static final String tempFileSuffix = getJniLibraryExtension();
     private static final String jniLibraryFileName = tempFilePrefix + tempFileSuffix;
+
+    static void load() {
+        try {
+            FlinkNativeLibraryLoader.getInstance().loadLibraryFromJar(null);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to load the Flink shared library", e);
+        }
+    }
 
     static FlinkNativeLibraryLoader getInstance() {
         return instance;
