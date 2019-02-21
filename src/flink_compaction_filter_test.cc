@@ -32,16 +32,16 @@ static const std::size_t LIST_ELEM_FIXED_LEN = static_cast<std::size_t>(8 + 4);
 
 static const int64_t QUERY_TIME_AFTER_NUM_ENTRIES = static_cast<int64_t>(10);
 
-//class ConsoleLogger : public Logger {
-//public:
-//  using Logger::Logv;
-//  ConsoleLogger() : Logger(InfoLogLevel::DEBUG_LEVEL) {}
-//
-//  void Logv(const char* format, va_list ap) override {
-//    vprintf(format, ap);
-//    printf("\n");
-//  }
-//};
+class ConsoleLogger : public Logger {
+public:
+  using Logger::Logv;
+  ConsoleLogger() : Logger(InfoLogLevel::DEBUG_LEVEL) {}
+
+  void Logv(const char* format, va_list ap) override {
+    vprintf(format, ap);
+    printf("\n");
+  }
+};
 
 int64_t time = 0;
 
@@ -89,9 +89,9 @@ void Init(FlinkCompactionFilter::StateType stype,
 
   auto config_holder = std::make_shared<FlinkCompactionFilter::ConfigHolder>();
   auto time_provider = new TestTimeProvider();
-  //auto logger = std::make_shared<ConsoleLogger>();
+  auto logger = std::make_shared<ConsoleLogger>();
 
-  filter = new FlinkCompactionFilter(config_holder, std::unique_ptr<FlinkCompactionFilter::TimeProvider>(time_provider));//, logger);
+  filter = new FlinkCompactionFilter(config_holder, std::unique_ptr<FlinkCompactionFilter::TimeProvider>(time_provider), logger);
   auto config = new FlinkCompactionFilter::Config{state_type, timestamp_offset, ttl, QUERY_TIME_AFTER_NUM_ENTRIES,
                                                   unique_ptr<FlinkCompactionFilter::ListElementFilterFactory>(fixed_len_filter_factory)};
   EXPECT_EQ(decide(), KKEEP); // test disabled config

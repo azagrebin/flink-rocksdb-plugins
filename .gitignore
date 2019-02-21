@@ -4,3 +4,4 @@ build*/
 rocksdbjni-bin
 target
 java/src/main/resources/lib*
+slice.cc

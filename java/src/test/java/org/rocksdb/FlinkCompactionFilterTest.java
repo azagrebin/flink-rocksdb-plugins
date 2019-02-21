@@ -26,8 +26,6 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.FlinkCompactionFilter.StateType;
 import org.rocksdb.FlinkCompactionFilter.TimeProvider;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -152,31 +150,8 @@ public class FlinkCompactionFilterTest {
             cfDesc = new ColumnFamilyDescriptor(getASCII(cf), getOptionsWithFilter(filterFactory));
         }
 
-        public static void deleteFolder(File folder) {
-            File[] files = folder.listFiles();
-            if(files!=null) { //some JVMs return null for empty dirs
-                for(File f: files) {
-                    if(f.isDirectory()) {
-                        deleteFolder(f);
-                    } else {
-                        f.delete();
-                    }
-                }
-            }
-        }
-
         private Logger createLogger() {
-//            String path = "/Users/azagrebin/projects/rocksdb_plugins/java";
-//            try {
-//                String rdbpath = path + "/java/target";
-//                deleteFolder(new File(rdbpath));
-//                NativeLibraryLoader.getInstance().loadLibrary(rdbpath);
-//                //RocksDB.loadLibrary(Collections.singletonList(path));
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
             try (DBOptions opts = new DBOptions().setInfoLogLevel(InfoLogLevel.DEBUG_LEVEL)) {
-                //System.load(path + "/librocksdb_plugins.dylib");
                 return new Logger(opts) {
                     @Override
                     protected void log(InfoLogLevel infoLogLevel, String logMsg) {
@@ -195,10 +170,6 @@ public class FlinkCompactionFilterTest {
             return new ColumnFamilyOptions()
                     .setCompactionFilterFactory(filterFactory)
                     .setMergeOperatorName(MERGE_OPERATOR_NAME);
-        }
-
-        public String getKey() {
-            return key;
         }
 
         ColumnFamilyDescriptor getCfDesc() {
