@@ -1,4 +1,5 @@
 .idea
+*.iml
 cmake-build*/
 build*/
 rocksdbjni-bin

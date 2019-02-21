@@ -34,7 +34,7 @@ class FlinkNativeLibraryLoader {
     private static final String tempFileSuffix = getJniLibraryExtension();
     private static final String jniLibraryFileName = tempFilePrefix + tempFileSuffix;
 
-    public static FlinkNativeLibraryLoader getInstance() {
+    static FlinkNativeLibraryLoader getInstance() {
         return instance;
     }
 
@@ -83,7 +83,7 @@ class FlinkNativeLibraryLoader {
         return temp;
     }
 
-    public static String getJniLibraryExtension() {
+    private static String getJniLibraryExtension() {
         if (Environment.isWindows()) {
             return ".dll";
         }

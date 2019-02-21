@@ -28,10 +28,10 @@ rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
 if hash scl 2>/dev/null; then
-    scl enable devtoolset-7 'cmake .. -DROCKSDBLIBJNI_PATH=${ROCKSDB_BIN} -DROCKSDB_PATH=${ROCKSDB_PATH}'
+    scl enable devtoolset-7 'cmake .. -DROCKSDB_PATH=${ROCKSDB_PATH}'
     scl enable devtoolset-7 'make rocksdb_plugins'
 else
-    cmake .. -DROCKSDBLIBJNI_PATH=${ROCKSDB_BIN} -DROCKSDB_PATH=${ROCKSDB_SOURCE_PATH}
+    cmake .. -DROCKSDB_PATH=${ROCKSDB_SOURCE_PATH}
 	make rocksdb_plugins
 fi
 cd ${CWD}

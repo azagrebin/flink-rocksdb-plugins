@@ -22,8 +22,7 @@ public class FlinkCompactionFilter
     try {
       FlinkNativeLibraryLoader.getInstance().loadLibraryFromJar(null);
     } catch (IOException e) {
-      throw new RuntimeException("Unable to load the Flink shared library"
-              + e);
+      throw new RuntimeException("Unable to load the Flink shared library", e);
     }
   }
 

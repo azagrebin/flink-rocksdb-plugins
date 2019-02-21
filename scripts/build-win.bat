@@ -1,9 +1,6 @@
-:: install git, java 8, maven, visual studio community 15 (2017)
-
-:: vcpkg install rocksdb:5.17.2:x64-windows
+:: choco install git.install jdk8 maven visualstudio2017community intellijidea-community vscode
 
 set MSBUILD=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe
-set JARTOOL=C:\Program Files\Java\jdk1.8.0_201\bin\jar.exe
 set CWD=%CD%
 
 set BUILD_DIR=%1
@@ -12,36 +9,27 @@ set ROCKSDB_VERSION=%2
 if "%ROCKSDB_VERSION%"=="" (set ROCKSDB_VERSION=5.17.2)
 set ROCKSDB_BIN=%3
 if "%ROCKSDB_BIN%"=="" (set ROCKSDB_BIN=rocksdbjni-bin)
-set ROCKSDB_PATH=%4
-if "%ROCKSDB_PATH%"=="" (set ROCKSDB_PATH=..\rocksdb)
+set ROCKSDB_SOURCE_PATH=%4
+if "%ROCKSDB_SOURCE_PATH%"=="" (set ROCKSDB_SOURCE_PATH=..\rocksdb)
 
-set JAR=rocksdbjni-%ROCKSDB_VERSION%.jar
-set MVNJAR=%HOMEPATH%\.m2\org\rocksdb\rocksdbjni\%ROCKSDB_VERSION%\%JAR%
-set OUTJAR=%ROCKSDB_BIN%\%JAR%
-
-if exist %ROCKSDB_BIN% rd /s /q %ROCKSDB_BIN%
-mkdir %ROCKSDB_BIN%
-
-if exist %MVNJAR% (
-    copy %MVNJAR% %ROCKSDB_BIN%\.
-) else (
-    curl -o %OUTJAR% "http://central.maven.org/maven2/org/rocksdb/rocksdbjni/%ROCKSDB_VERSION%/%JAR%"
-)
-
-cd %ROCKSDB_BIN%
-"%JARTOOL%" -xvf %JAR%
-cd %CWD%
-
-:: call scripts\generate-lib.bat
-:: copy ..\rocksdb\build\Release\rocksdb.lib %ROCKSDB_BIN%\librocksdbjni-win64.lib
+:: copy some rocksdb sources to not depend on rocksdb binaries
+copy %ROCKSDB_SOURCE_PATH%\util\slice.cc src\.
 
 if exist %BUILD_DIR% rd /s /q %BUILD_DIR%
-:: if exist librocksdbjni-win64.dll del librocksdbjni-win64.dll
 mkdir %BUILD_DIR%
 cd %BUILD_DIR%
 
-cmake -G "Visual Studio 15 Win64" .. -DROCKSDBLIBJNI_PATH=%ROCKSDB_BIN% -DROCKSDB_PATH=%ROCKSDB_PATH% -DCMAKE_TOOLCHAIN_FILE="D:\vcpkg\scripts\buildsystems\vcpkg.cmake"
+cmake -G "Visual Studio 15 Win64" .. -DROCKSDB_PATH=%ROCKSDB_SOURCE_PATH%
 
-"%MSBUILD%" rocksdb_plugins.sln
+"%MSBUILD%" rocksdb_plugins.sln /p:Configuration=Release /m
 
+cd %CWD%
+
+set LIB_NAME=rocksdb_plugins.dll
+set JAVA_OUT_PATH=java\src\main\resources
+if not exist %JAVA_OUT_PATH% mkdir %JAVA_OUT_PATH%
+copy %BUILD_DIR%\Release\%LIB_NAME% %JAVA_OUT_PATH%\lib%LIB_NAME%
+
+cd java
+mvn clean install
 cd %CWD%
