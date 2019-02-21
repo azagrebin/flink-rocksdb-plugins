@@ -7,6 +7,9 @@ ROCKSDB_VERSION ?= 5.17.2
 
 all: clean build-linux32 build-linux64 build-osx
 
+generate-jni-headers:
+	cd java;mvn clean compile
+
 prepare-rocksdb:
 	git clone https://github.com/facebook/rocksdb
 	cd rocksdb; git checkout v${ROCKSDB_VERSION}
